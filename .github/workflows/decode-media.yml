@@ -1,0 +1,36 @@
+name: Decode media
+on:
+  push:
+    paths:
+      - "encoded/**"
+      - ".github/workflows/decode-media.yml"
+  workflow_dispatch:
+jobs:
+  decode:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode base64 media into week1/
+        run: |
+          set -euo pipefail
+          mkdir -p week1/carousel
+          shopt -s nullglob
+          for f in encoded/week1/*.b64; do
+            out="week1/$(basename "${f%.b64}")"
+            base64 -d "$f" > "$out"
+          done
+          for f in encoded/week1/carousel/*.b64; do
+            out="week1/carousel/$(basename "${f%.b64}")"
+            base64 -d "$f" > "$out"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add week1
+          if git diff --cached --quiet; then
+            echo "No media changes"
+          else
+            git commit -m "Decode week 1 media for public raw URLs"
+            git push
+          fi
